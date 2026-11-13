@@ -1,3 +1,6 @@
+# 在 UniXNU/UniXNU-sheng 官方 package.yml 基础上追加：userdata 根卷镜像构建 + 分片上传。
+# 用法：把本文件覆盖到你 fork 的 .github/workflows/package.yml，然后手动触发 os=27。
+
 name: package
 
 # scripts/package.sh of this repository on a macOS runner, with the UniXNU and uefi-sheng
@@ -151,6 +154,86 @@ jobs:
           path: |
             UniXNU/out/sheng/*/*/runtime/data.dbr
             UniXNU/out/sheng/*/*/runtime/inputs.json
+
+      # ---- added: build the userdata root image (not part of package.sh) ----
+      - name: userdata root image
+        if: inputs.os == '27'
+        working-directory: device
+        env:
+          UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -x
+          python3 ../UniXNU/unixnu build userdata -D "$PWD"
+          ls -l ../UniXNU/out/sheng/*/*/userdata/ || true
+
+      - name: split userdata image
+        if: inputs.os == '27'
+        working-directory: device
+        run: |
+          img=$(ls -1 ../UniXNU/out/sheng/*/*/userdata/userdata-root.img | head -n1)
+          ls -l "$img"
+          mkdir -p split
+          split -a 1 -d -b 3800m "$img" split/userdata-root.img.
+          ls -l split
+
+      - name: userdata parts 0
+        if: inputs.os == '27'
+        uses: actions/upload-artifact@v4
+        with:
+          name: userdata-27-0
+          retention-days: 1
+          if-no-files-found: ignore
+          path: device/split/userdata-root.img.0
+      - name: userdata parts 1
+        if: inputs.os == '27'
+        uses: actions/upload-artifact@v4
+        with:
+          name: userdata-27-1
+          retention-days: 1
+          if-no-files-found: ignore
+          path: device/split/userdata-root.img.1
+      - name: userdata parts 2
+        if: inputs.os == '27'
+        uses: actions/upload-artifact@v4
+        with:
+          name: userdata-27-2
+          retention-days: 1
+          if-no-files-found: ignore
+          path: device/split/userdata-root.img.2
+      - name: userdata parts 3
+        if: inputs.os == '27'
+        uses: actions/upload-artifact@v4
+        with:
+          name: userdata-27-3
+          retention-days: 1
+          if-no-files-found: ignore
+          path: device/split/userdata-root.img.3
+      - name: userdata parts 4
+        if: inputs.os == '27'
+        uses: actions/upload-artifact@v4
+        with:
+          name: userdata-27-4
+          retention-days: 1
+          if-no-files-found: ignore
+          path: device/split/userdata-root.img.4
+      - name: userdata parts 5
+        if: inputs.os == '27'
+        uses: actions/upload-artifact@v4
+        with:
+          name: userdata-27-5
+          retention-days: 1
+          if-no-files-found: ignore
+          path: device/split/userdata-root.img.5
+      - name: userdata report
+        if: inputs.os == '27'
+        uses: actions/upload-artifact@v4
+        with:
+          name: userdata-report-27
+          retention-days: 1
+          if-no-files-found: ignore
+          path: UniXNU/out/sheng/*/*/userdata/userdata-root.json
+
       - name: images
         uses: actions/upload-artifact@v4
         with:
